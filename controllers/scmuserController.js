@@ -64,6 +64,13 @@ module.exports.createSCMUser = catchAsyncError(async (req, res, next) => {
   } else {
     req.body.avatarPath = "default.jpg";
   }
+  const oldUser = await SCMUser.get({
+    role: req.body.role,
+    email: req.body.email,
+  });
+  if (oldUser.length > 0) {
+    return next(new AppError(400, "User email already in use"));
+  }
   newUser = new SCMUser(req.body);
   const data = await newUser.set();
   const newPortMap = { port: PORT[PORT.length - 1].port + 1, id: data.userId };
@@ -75,7 +82,7 @@ module.exports.createSCMUser = catchAsyncError(async (req, res, next) => {
     const rest = spawn(`${__dirname}/../shell_scripts/generateRest.sh`, [
       generateCapitalizedRole(data.role),
       data.userId,
-      data.name,
+      data.email,
       translator.fromUUID(data.userId),
       newPortMap.port,
     ]);
